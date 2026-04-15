@@ -9,6 +9,12 @@ const { auth, adminOnly } = require('../middleware/auth');
 router.post('/', auth, adminOnly, async (req, res) => {
   try {
     const { userId, date, prayer, prayed } = req.body;
+    
+    // Prevent future dating
+    const today = new Date().toISOString().split('T')[0];
+    if (date > today) {
+      return res.status(400).json({ message: 'Cannot mark attendance for future dates.' });
+    }
 
     // Check if attendance already marked for this user/date/prayer
     let prayerLog = await PrayerLog.findOne({ userId, date, prayer });
@@ -46,6 +52,13 @@ router.post('/', auth, adminOnly, async (req, res) => {
 router.post('/bulk', auth, adminOnly, async (req, res) => {
   try {
     const { date, prayer, attendances } = req.body;
+    
+    // Prevent future dating
+    const today = new Date().toISOString().split('T')[0];
+    if (date > today) {
+      return res.status(400).json({ message: 'Cannot mark attendance for future dates.' });
+    }
+
     // attendances should be an array of { userId, prayed }
 
     const results = [];
