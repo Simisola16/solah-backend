@@ -23,11 +23,21 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create new user
+    let profileImageUrl = null;
+    if (req.file) {
+      if (process.env.NODE_ENV === 'production') {
+        // Store as Base64 in production (Vercel has no disk persistence)
+        profileImageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      } else {
+        profileImageUrl = `/uploads/${req.file.filename}`;
+      }
+    }
+
     user = new User({
       name,
       email,
       password: hashedPassword,
-      profileImage: req.file ? `/uploads/${req.file.filename}` : null,
+      profileImage: profileImageUrl,
       role: 'user'
     });
 
