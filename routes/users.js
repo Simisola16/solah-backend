@@ -5,14 +5,47 @@ const PrayerLog = require('../models/PrayerLog');
 const { auth, adminOnly } = require('../middleware/auth');
 
 // @route   GET /api/users
-// @desc    Get all users (admin only)
-// @access  Private/Admin
-router.get('/', auth, adminOnly, async (req, res) => {
+// @desc    Get all users (for markers, viewers, and admins)
+// @access  Private/View
+router.get('/', auth, async (req, res) => {
   try {
-    const users = await User.find({ role: 'user' }).select('-password').sort({ createdAt: -1 });
+    const viewerRoles = ['admin', 'marker', 'viewer'];
+    if (!viewerRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const users = await User.find({ role: { $ne: 'admin' } }).select('-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PATCH /api/users/:id/role
+// @desc    Update user role (admin only)
+// @access  Private/Admin
+router.patch('/:id/role', auth, adminOnly, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['user', 'marker', 'viewer'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: 'Cannot change admin role' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: 'User role updated successfully', user });
+  } catch (error) {
+    console.error('Update role error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

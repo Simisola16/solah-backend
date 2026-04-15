@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const PrayerLog = require('../models/PrayerLog');
-const { auth, adminOnly } = require('../middleware/auth');
+const { auth, adminOnly, canMark, canView } = require('../middleware/auth');
 
 // @route   POST /api/prayer-logs
 // @desc    Mark prayer attendance (admin only)
 // @access  Private/Admin
-router.post('/', auth, adminOnly, async (req, res) => {
+router.post('/', auth, canMark, async (req, res) => {
   try {
     const { userId, date, prayer, prayed } = req.body;
     
@@ -49,7 +49,7 @@ router.post('/', auth, adminOnly, async (req, res) => {
 // @route   POST /api/prayer-logs/bulk
 // @desc    Mark multiple prayer attendances at once (admin only)
 // @access  Private/Admin
-router.post('/bulk', auth, adminOnly, async (req, res) => {
+router.post('/bulk', auth, canMark, async (req, res) => {
   try {
     const { date, prayer, attendances } = req.body;
     
@@ -106,8 +106,9 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
 // @access  Private
 router.get('/user/:userId', auth, async (req, res) => {
   try {
-    // Check if user is requesting their own data or is admin
-    if (req.user.userId !== req.params.userId && req.user.role !== 'admin') {
+    // Check if user is requesting their own data or has view privilege
+    const viewerRoles = ['admin', 'marker', 'viewer'];
+    if (req.user.userId !== req.params.userId && !viewerRoles.includes(req.user.role)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -132,7 +133,7 @@ router.get('/user/:userId', auth, async (req, res) => {
 // @route   GET /api/prayer-logs/all
 // @desc    Get all prayer logs for all users in range (admin only)
 // @access  Private/Admin
-router.get('/all', auth, adminOnly, async (req, res) => {
+router.get('/all', auth, canView, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     let query = {};
@@ -156,7 +157,7 @@ router.get('/all', auth, adminOnly, async (req, res) => {
 // @route   GET /api/prayer-logs/today
 // @desc    Get today's prayer logs for all users (admin only)
 // @access  Private/Admin
-router.get('/today', auth, adminOnly, async (req, res) => {
+router.get('/today', auth, canView, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     
@@ -192,7 +193,7 @@ router.get('/today', auth, adminOnly, async (req, res) => {
 // @route   GET /api/prayer-logs/by-date/:date
 // @desc    Get prayer logs for a specific date (admin only)
 // @access  Private/Admin
-router.get('/by-date/:date', auth, adminOnly, async (req, res) => {
+router.get('/by-date/:date', auth, canView, async (req, res) => {
   try {
     const { date } = req.params;
     
