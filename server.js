@@ -72,9 +72,13 @@ app.get('/api/prayer-times', async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Health check and root endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+app.get('/', (req, res) => {
+  res.send('Solah Tracker API is running...');
 });
 
 // Error handling middleware
