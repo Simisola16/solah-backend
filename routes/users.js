@@ -113,6 +113,34 @@ router.get('/:id/stats', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/users/global/stats
+// @desc    Get global statistics for all users
+// @access  Private
+router.get('/global/stats', auth, async (req, res) => {
+  try {
+    const allLogs = await PrayerLog.find();
+    
+    const totalPrayers = allLogs.length;
+    const prayedCount = allLogs.filter(log => log.prayed).length;
+    const missedCount = totalPrayers - prayedCount;
+    const percentage = totalPrayers > 0 ? Math.round((prayedCount / totalPrayers) * 100) : 0;
+
+    // Get total number of users
+    const totalUsers = await User.countDocuments({ role: 'user' });
+
+    res.json({
+      totalPrayers,
+      prayedCount,
+      missedCount,
+      percentage,
+      totalUsers
+    });
+  } catch (error) {
+    console.error('Get global stats error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   DELETE /api/users/:id
 // @desc    Delete a user and their prayer logs (admin only)
 // @access  Private/Admin
