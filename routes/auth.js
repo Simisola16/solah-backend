@@ -12,6 +12,11 @@ router.post('/register', upload.single('profileImage'), async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Check if profile image is uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: 'Profile image is required' });
+    }
+
     // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {

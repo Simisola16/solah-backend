@@ -51,24 +51,28 @@ router.post('/bulk', auth, adminOnly, async (req, res) => {
     const results = [];
     const errors = [];
 
-    // Check if ANY attendance already exists for this date and prayer
-    const existingLogs = await PrayerLog.find({ date, prayer });
-    if (existingLogs.length > 0) {
-      return res.status(400).json({ message: `Attendance for ${prayer} on this date has already been saved and cannot be changed.` });
-    }
-
     for (const attendance of attendances) {
       try {
-        const prayerLog = new PrayerLog({
-          userId: attendance.userId,
-          date,
-          prayer,
-          prayed: attendance.prayed,
-          markedBy: req.user.userId
-        });
-        await prayerLog.save();
+        // Use findOneAndUpdate with upsert to either update existing or create new
+        const prayerLog = await PrayerLog.findOneAndUpdate(
+          { 
+            userId: attendance.userId, 
+            date: date, 
+            prayer: prayer 
+          },
+          { 
+            prayed: attendance.prayed,
+            markedBy: req.user.userId
+          },
+          { 
+            upsert: true, 
+            new: true,
+            setDefaultsOnInsert: true
+          }
+        );
         results.push(prayerLog);
       } catch (err) {
+        console.error(`Error processing attendance for user ${attendance.userId}:`, err);
         errors.push({ userId: attendance.userId, error: err.message });
       }
     }
