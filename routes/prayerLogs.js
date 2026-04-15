@@ -129,6 +129,30 @@ router.get('/user/:userId', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/prayer-logs/all
+// @desc    Get all prayer logs for all users in range (admin only)
+// @access  Private/Admin
+router.get('/all', auth, adminOnly, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let query = {};
+
+    if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    }
+
+    const prayerLogs = await PrayerLog.find(query)
+      .populate('userId', 'name email profileImage')
+      .populate('markedBy', 'name')
+      .sort({ date: -1, prayer: 1 });
+
+    res.json(prayerLogs);
+  } catch (error) {
+    console.error('Get all prayer logs error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/prayer-logs/today
 // @desc    Get today's prayer logs for all users (admin only)
 // @access  Private/Admin
